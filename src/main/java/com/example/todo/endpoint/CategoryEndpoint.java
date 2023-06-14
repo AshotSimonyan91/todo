@@ -18,7 +18,7 @@ import java.util.Optional;
  */
 
 @RestController
-@RequestMapping("/category")
+@RequestMapping("/categories")
 @RequiredArgsConstructor
 public class CategoryEndpoint {
 
@@ -28,11 +28,8 @@ public class CategoryEndpoint {
     @PostMapping()
     public ResponseEntity<CategoryDto> register(@RequestBody CreateCategoryRequestDto createCategoryRequestDto) {
         Optional<Category> byName = categoryService.findByName(createCategoryRequestDto.getName());
-        if (byName.isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        }
-        Category save = categoryService.save(categoryMapper.map(createCategoryRequestDto));
-        return ResponseEntity.ok(categoryMapper.mapToDto(save));
+        return byName.<ResponseEntity<CategoryDto>>map(category -> ResponseEntity.status(HttpStatus.CONFLICT).build())
+                .orElseGet(() -> ResponseEntity.ok(categoryMapper.mapToDto(categoryService.save(categoryMapper.map(createCategoryRequestDto)))));
     }
 
     @GetMapping()
@@ -42,12 +39,8 @@ public class CategoryEndpoint {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteById(@PathVariable("id") int id) {
-        if (categoryService.existsById(id)) {
-            categoryService.remove(id);
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
-
+        if (!categoryService.existsById(id)) return ResponseEntity.notFound().build();
+        categoryService.remove(id);
+        return ResponseEntity.noContent().build();
     }
-
 }
